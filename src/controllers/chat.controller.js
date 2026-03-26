@@ -1,39 +1,49 @@
+import { generateLeonardoImage } from "../services/leonardoService.js";
 import { streamChatResponse } from "../services/openaiService.js";
+import prisma from "../config/prisma.js";
 
 export const handleChat = async (req, res) => {
   try {
-    const { messages, generateImage = false } = req.body;
+    const { messages, generateImage = false, taskId } = req.body;
 
-    // 🧩 1️⃣ Validación de entrada
+    // 🔐 (ideal) sacar userId desde JWT luego
+    const userId = req.user.id;
+
+    // 🧩 1️⃣ Validación
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({
         success: false,
-        type: "validation_error",
-        message:
-          "El campo 'messages' es obligatorio y debe ser un arreglo con al menos un mensaje.",
+        message: "messages inválido",
       });
     }
 
-    // Verificar que todos los mensajes tengan el formato correcto
-    const invalidMsg = messages.find(
-      (msg) =>
-        !msg.role ||
-        !["user", "assistant", "system"].includes(msg.role) ||
-        typeof msg.content !== "string"
-    );
+    // 🚀 2️⃣ Obtener último mensaje del usuario
+    const lastMessage = messages[messages.length - 1];
 
-    if (invalidMsg) {
-      return res.status(400).json({
-        success: false,
-        type: "validation_error",
-        message:
-          "Cada mensaje debe tener un 'role' válido ('user', 'assistant' o 'system') y un 'content' de tipo string.",
-      });
-    }
+    // 💾 3️⃣ Guardar mensaje del usuario
+    await prisma.conversation.create({
+      data: {
+        userId,
+        taskId: taskId || null,
+        role: "user",
+        content: lastMessage.content
+      }
+    });
 
-    // 🚀 2️⃣ Llamar al servicio de OpenAI (según tipo)
+    // 🤖 4️⃣ Llamar IA
     const response = await streamChatResponse(messages, generateImage);
 
+    // 💾 5️⃣ Guardar respuesta de IA
+    await prisma.conversation.create({
+      data: {
+        userId,
+        taskId: taskId || null,
+        role: "assistant",
+        content: response
+      }
+    });
+
+    // 📤 6️⃣ Respuesta
     return res.status(200).json({
       success: true,
       data: response,
@@ -90,4 +100,16 @@ export const handleChat = async (req, res) => {
       });
     }
   }
+};
+
+
+export const getUserConversations = async (req, res) => {
+ const userId = req.user.id;
+
+  const conversations = await prisma.conversation.findMany({
+    where: { userId: parseInt(userId) },
+    orderBy: { createdAt: "asc" }
+  });
+
+  res.json(conversations);
 };

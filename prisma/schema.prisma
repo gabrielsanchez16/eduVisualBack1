@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+
+  // relaciones profesor-estudiante
+  teacherStudents TeacherStudent[] @relation("TeacherRelation")
+  studentTeachers TeacherStudent[] @relation("StudentRelation")
+
+  // tareas creadas
+  tasks Task[]
+
+  // 👇 submissions del estudiante
+  submissions Submission[] @relation("StudentSubmissions")
+
+  // 👇 tareas asignadas
+  taskAssignments TaskAssignment[] @relation("StudentAssignments")
+
+  conversations Conversation[] @relation("UserConversations")
+}
+
+model TeacherStudent {
+  id        Int @id @default(autoincrement())
+  teacherId Int
+  studentId Int
+
+  teacher User @relation("TeacherRelation", fields: [teacherId], references: [id])
+  student User @relation("StudentRelation", fields: [studentId], references: [id])
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  aiContent   String
+  createdAt   DateTime @default(now())
+
+  teacherId Int
+  teacher   User @relation(fields: [teacherId], references: [id])
+
+  assignments TaskAssignment[]
+
+  // 👇 relación nombrada
+  submissions   Submission[]   @relation("TaskSubmissions")
+  conversations Conversation[] @relation("TaskConversations")
+}
+
+model TaskAssignment {
+  id        Int    @id @default(autoincrement())
+  taskId    Int
+  studentId Int
+  status    Status @default(PENDING)
+
+  task    Task @relation(fields: [taskId], references: [id])
+  student User @relation("StudentAssignments", fields: [studentId], references: [id])
+}
+
+model Submission {
+  id        Int      @id @default(autoincrement())
+  response  String
+  feedback  String?
+  grade     Float?
+  createdAt DateTime @default(now())
+
+  taskId    Int
+  studentId Int
+
+  // 👇 relación con Task
+  task Task @relation("TaskSubmissions", fields: [taskId], references: [id])
+
+  // 👇 relación con User (ESTA era la que fallaba)
+  student User @relation("StudentSubmissions", fields: [studentId], references: [id])
+}
+
+enum Role {
+  teacher
+  student
+}
+
+enum Status {
+  PENDING
+  DONE
+}
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  taskId    Int?
+  role      String // "user" | "assistant"
+  content   String
+  createdAt DateTime @default(now())
+
+  user User  @relation("UserConversations", fields: [userId], references: [id])
+  task Task? @relation("TaskConversations", fields: [taskId], references: [id])
+}
