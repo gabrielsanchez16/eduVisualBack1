@@ -63,6 +63,13 @@ Su objetivo principal es **generar texto e imágenes educativas** que apoyen el 
    npm run dev
    ```
 
+6. correr migracion:
+
+   ```bash
+   npx prisma migrate dev --name nombre_de_la_migracion
+   ```
+
+
 ---
 
 ## 🌐 Endpoints principales

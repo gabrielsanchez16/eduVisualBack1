@@ -43,13 +43,15 @@ model TeacherStudent {
 
   teacher User @relation("TeacherRelation", fields: [teacherId], references: [id])
   student User @relation("StudentRelation", fields: [studentId], references: [id])
+
+  @@unique([teacherId, studentId]) // 🔥 evita duplicados
 }
 
 model Task {
   id          Int      @id @default(autoincrement())
   title       String
   description String?
-  aiContent   String
+  aiContent   String @db.LongText
   createdAt   DateTime @default(now())
 
   teacherId Int
@@ -103,10 +105,23 @@ model Conversation {
   id        Int      @id @default(autoincrement())
   userId    Int
   taskId    Int?
-  role      String // "user" | "assistant"
-  content   String
+  title     String?
   createdAt DateTime @default(now())
 
-  user User  @relation("UserConversations", fields: [userId], references: [id])
+  // 🔥 relaciones correctas
+  user User @relation("UserConversations", fields: [userId], references: [id])
   task Task? @relation("TaskConversations", fields: [taskId], references: [id])
+
+  messages Message[]
+}
+
+model Message {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  conversationId  Int
+  role            String
+  content         String @db.LongText
+  createdAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
 }

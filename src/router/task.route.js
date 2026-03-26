@@ -5,6 +5,6 @@ import { isStudent, isTeacher, verifyToken } from "../middleware/auth.middleware
 const router = express.Router();
 
 router.post("/create", verifyToken, isTeacher, createTask);
-router.get("/my-tasks", verifyToken, isStudent, getMyTasks);
+router.get("/my-tasks", verifyToken, getMyTasks);
 
 export default router;
