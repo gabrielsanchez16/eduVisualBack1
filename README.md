@@ -68,6 +68,12 @@ Su objetivo principal es **generar texto e imágenes educativas** que apoyen el 
    ```bash
    npx prisma migrate dev --name nombre_de_la_migracion
    ```
+7. Crear tablas:
+
+   ```bash
+   npx prisma db push
+   npx prisma generate
+   ```
 
 
 ---
